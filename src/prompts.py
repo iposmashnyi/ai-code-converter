@@ -292,3 +292,102 @@ def get_conversion_rules(source_lang: str, target_lang: str):
     """
     key = (source_lang.lower(), target_lang.lower())
     return CONVERSION_RULES.get(key, {})
+
+
+# Multi-file conversion template with context
+MULTI_FILE_CONVERSION_TEMPLATE = """You are an expert code converter working on a multi-file project.
+This is file {current_file}/{total_files} in the project.
+
+IMPORTANT: Maintain consistency with previously converted files by using these established patterns:
+
+Previously converted symbols:
+{cached_symbols}
+
+Import conversions:
+{cached_imports}
+
+Naming patterns to follow:
+{patterns}
+
+Source language: {source_lang}
+Target language: {target_lang}
+
+Current file: {file_name}
+File imports: {file_imports}
+
+Important rules:
+1. Use the cached symbol mappings above for consistency
+2. If a class/function was already converted, use the same name
+3. Follow the established patterns for naming conventions
+4. Preserve the exact functionality and logic
+5. Use idiomatic {target_lang} patterns
+
+Source code ({source_lang}):
+```{source_lang}
+{source_code}
+```
+
+Converted code ({target_lang}):
+```{target_lang}"""
+
+
+def get_multi_file_prompt(
+    source_lang: str,
+    target_lang: str,
+    context: dict = None
+):
+    """
+    Get prompt template for multi-file conversion with context.
+
+    Args:
+        source_lang: Source programming language
+        target_lang: Target programming language
+        context: Dictionary with cached symbols and patterns
+
+    Returns:
+        PromptTemplate configured for multi-file conversion
+    """
+    from langchain.prompts import PromptTemplate
+
+    # Format context for the prompt
+    if context:
+        cached_symbols = "\n".join([
+            f"  {src} → {tgt}"
+            for src, tgt in context.get("cached_symbols", {}).items()
+        ][:10])  # Show top 10
+
+        cached_imports = "\n".join([
+            f"  {src} → {tgt}"
+            for src, tgt in context.get("cached_imports", {}).items()
+        ])
+
+        patterns = "\n".join([
+            f"  - {p.get('description', str(p))}"
+            for p in context.get("cached_patterns", [])
+        ])
+    else:
+        cached_symbols = "  (No previous conversions)"
+        cached_imports = "  (No import conversions yet)"
+        patterns = "  - Use standard conventions for {target_lang}"
+
+    # Create the prompt with injected context
+    template = MULTI_FILE_CONVERSION_TEMPLATE.format(
+        cached_symbols=cached_symbols or "  (None yet)",
+        cached_imports=cached_imports or "  (None yet)",
+        patterns=patterns or "  - Follow standard {target_lang} conventions",
+        source_lang="{source_lang}",
+        target_lang="{target_lang}",
+        current_file="{current_file}",
+        total_files="{total_files}",
+        file_name="{file_name}",
+        file_imports="{file_imports}",
+        source_code="{source_code}"
+    )
+
+    return PromptTemplate(
+        input_variables=[
+            "source_lang", "target_lang", "source_code",
+            "current_file", "total_files", "file_name", "file_imports"
+        ],
+        template=template
+    )
