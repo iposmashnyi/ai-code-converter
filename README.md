@@ -1,73 +1,66 @@
-# AI Code Converter - Single File Prototype
+# AI Code Converter
 
-A minimal LangChain-based code converter that transforms code between programming languages using LLMs. This prototype focuses on single-file conversion with smart token management.
+LangChain-based code converter for transforming codebases between programming languages using LLMs (GPT-4, Claude). Optimized for token efficiency and consistency across multi-file projects.
 
 ## Features
 
-- 🔄 **Single File Conversion**: Convert one file at a time with full control
-- 💰 **Cost Estimation**: Preview token usage and cost before conversion
-- 🎯 **Few-Shot Learning**: Uses examples for better conversion quality
-- 🔧 **Multiple LLM Support**: Works with OpenAI GPT and Anthropic Claude
-- 📊 **Token Tracking**: Monitor token usage and costs
-- 🎨 **Language Support**: Python ↔ JavaScript (easily extendable)
+- **Single & Multi-File Conversion**: Handles individual files or projects up to 25 files
+- **Token-Efficient Processing**: File-by-file conversion to avoid context explosion
+- **Symbol Cache**: Maintains naming consistency (e.g., snake_case → camelCase)
+- **Progress Tracking & Resume**: Checkpoint-based recovery for interrupted conversions
+- **Smart File Discovery**: Respects .gitignore patterns
+- **Multi-LLM Support**: OpenAI GPT-4/GPT-3.5, Anthropic Claude
 
-## Quick Start
-
-### 1. Setup
+## Installation
 
 ```bash
-# Clone and enter directory
+git clone https://github.com/yourusername/ai-code-converter.git
 cd ai-code-converter
-
-# Create virtual environment
 python -m venv .venv
-source .venv/bin/activate  # On Windows: .venv\Scripts\activate
-
-# Install dependencies
+source .venv/bin/activate
 pip install -r requirements.txt
-
-# Configure API keys
 cp .env.example .env
-# Edit .env and add your OpenAI or Anthropic API key
+# Add your API keys to .env
 ```
 
-### 2. Test the Converter
+## Configuration
 
+`.env` file:
+```env
+OPENAI_API_KEY=sk-proj-...
+ANTHROPIC_API_KEY=sk-ant-api03-...
+DEFAULT_MODEL=gpt-4
+MAX_TOKENS=4000
+TEMPERATURE=0.1
+```
+
+## Usage
+
+### Single File
 ```bash
-# Run the test script
-python test_converter.py
-
-# Or convert a specific file
-python -m src.single_file_converter examples/sample.py \
+python single_file_converter.py input.py \
   --from-lang python \
   --to-lang javascript \
-  --output examples/output/sample.js
+  --output output.js
 ```
 
-### 3. Use in Your Code
+### Multi-File Project
+```bash
+python convert_project.py \
+  --source ./my-python-project \
+  --output ./my-js-project \
+  --source-lang python \
+  --target-lang javascript \
+  --model gpt-4 \
+  --max-files 25
+```
 
-```python
-from src.single_file_converter import FileConverter
-
-# Initialize converter
-converter = FileConverter(
-    source_lang="python",
-    target_lang="javascript",
-    model="gpt-3.5-turbo"  # or "gpt-4", "claude-3-sonnet"
-)
-
-# Estimate cost before conversion
-estimate = converter.estimate_cost("your_file.py")
-print(f"Estimated cost: {estimate['estimated_cost']}")
-
-# Convert and save
-result = converter.convert_and_save(
-    source_path="your_file.py",
-    output_path="your_file.js"
-)
-
-if result["success"]:
-    print(f"Conversion successful! Tokens used: {result['tokens_used']}")
+### Resume Interrupted Conversion
+```bash
+python convert_project.py \
+  --source ./my-python-project \
+  --output ./my-js-project \
+  --resume
 ```
 
 ## Project Structure
@@ -75,123 +68,92 @@ if result["success"]:
 ```
 ai-code-converter/
 ├── src/
-│   ├── single_file_converter.py  # Main converter logic
-│   └── prompts.py                # LangChain prompts & templates
-├── examples/
-│   ├── sample.py                 # Test input file
-│   └── output/                   # Converted files go here
-├── test_converter.py             # Test script
-├── requirements.txt              # Python dependencies
-└── .env                         # API keys (create from .env.example)
+│   ├── single_file_converter.py  # Single file logic
+│   ├── multi_file_converter.py   # Multi-file orchestration
+│   ├── file_discovery.py         # File detection
+│   ├── symbol_cache.py           # Naming consistency
+│   ├── progress_tracker.py       # Checkpoint management
+│   └── prompts.py                # LangChain templates
+├── convert_project.py            # Multi-file CLI
+├── single_file_converter.py      # Single file CLI
+├── requirements.txt
+└── .env.example
 ```
 
-## How It Works
+## Python API
 
-1. **File Loading**: Reads source code file
-2. **Token Estimation**: Calculates approximate token usage
-3. **LangChain Processing**:
-   - Uses few-shot examples for common patterns
-   - Applies language-specific conversion rules
-   - Manages prompts through LangChain templates
-4. **LLM Conversion**: Sends to GPT/Claude for transformation
-5. **Output Generation**: Saves converted code with proper formatting
+```python
+from src.multi_file_converter import MultiFileConverter
 
-## Token Management Strategy
+converter = MultiFileConverter(
+    source_lang="python",
+    target_lang="javascript",
+    model="gpt-4",
+    max_tokens=4000
+)
 
-This prototype implements efficient token usage:
-
-- **Per-file processing**: No full codebase context loading
-- **Token estimation**: Preview costs before running
-- **Streaming support**: See results as they generate
-- **Model selection**: Use cheaper models for simple files
-
-Example token usage for a 100-line Python file:
-- Input tokens: ~500
-- Output tokens: ~600
-- Total: ~1,100 tokens
-- Cost: ~$0.002 (GPT-3.5)
-
-## Supported Conversions
-
-Currently supports:
-- Python → JavaScript ✅
-- JavaScript → Python ✅
-- Python → TypeScript 🚧
-
-Easy to add more by updating `prompts.py`.
-
-## Configuration
-
-Edit `.env` file:
-
-```env
-# Choose your LLM provider
-OPENAI_API_KEY=sk-...
-ANTHROPIC_API_KEY=sk-ant-...
-
-# Model selection
-DEFAULT_MODEL=gpt-3.5-turbo
-
-# Conversion settings
-MAX_TOKENS=2000
-TEMPERATURE=0.1
+result = converter.convert_project(
+    source_dir="./src",
+    output_dir="./dist",
+    max_files=25
+)
 ```
+
+## CLI Options
+
+```bash
+convert_project.py:
+  --source PATH         Source directory
+  --output PATH         Output directory
+  --source-lang LANG    python|javascript|typescript
+  --target-lang LANG    python|javascript|typescript
+  --model MODEL         gpt-4|gpt-3.5-turbo|claude-3-sonnet-20240229
+  --max-tokens INT      Max tokens per request (default: 4000)
+  --max-files INT       Max files to convert (default: 25)
+  --temperature FLOAT   Model temperature (default: 0.1)
+  --resume             Resume from checkpoint
+  --verbose            Detailed output
+```
+
+## Token Management
+
+- Processes files individually (~2-3K tokens per 100 lines)
+- Symbol cache for cross-file consistency
+- No full codebase context loading
 
 ## Limitations
 
-This is a minimal prototype with:
-- Single file conversion only
-- No dependency resolution
-- No cross-file context
-- Basic error handling
-- Manual review recommended
-
-## Next Steps for Scaling
-
-To handle larger codebases (1000+ files):
-
-1. **Chunking System**: Process files in small batches
-2. **Symbol Cache**: Track converted names for consistency
-3. **Parallel Processing**: Convert multiple files simultaneously
-4. **Context Extraction**: Minimal context without full loading
-5. **Streaming Pipeline**: Start seeing results immediately
+- Max 25 files per run (configurable)
+- No cross-file type inference
+- Binary files skipped
+- Generated code requires review
 
 ## Troubleshooting
 
-**API Key Issues:**
 ```bash
-# Check if .env file exists and has keys
-cat .env | grep API_KEY
-```
+# Check API keys
+python -c "import os; print('Keys configured:', bool(os.getenv('OPENAI_API_KEY') or os.getenv('ANTHROPIC_API_KEY')))"
 
-**Installation Issues:**
-```bash
-# Use specific versions if conflicts occur
+# Token limit issues
+python convert_project.py --max-tokens 2000
+
+# Resume after failure
+python convert_project.py --resume
+
+# Version conflicts
 pip install langchain==0.3.14 langchain-openai==0.2.14
 ```
 
-**Token Limit Exceeded:**
-- Reduce `MAX_TOKENS` in .env
-- Split large files into smaller chunks
-- Use GPT-3.5 for simple conversions
+## Requirements
 
-## Development
-
-Run tests:
-```bash
-python test_converter.py
-```
-
-Add new language support:
-1. Edit `src/prompts.py`
-2. Add examples to `PYTHON_TO_X_EXAMPLES`
-3. Update `CONVERSION_RULES` dictionary
-4. Test with sample files
+See `requirements.txt`:
+- langchain==0.3.14
+- langchain-openai==0.2.14
+- langchain-anthropic==0.3.0
+- python-dotenv==1.0.1
+- tiktoken==0.8.0
+- colorama==0.4.6
 
 ## License
 
 MIT
-
----
-
-Built as a prototype for efficient, token-conscious code conversion using LangChain.
