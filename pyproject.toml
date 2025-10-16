@@ -1,0 +1,30 @@
+[project]
+name = "ai-code-converter"
+version = "0.0.2"
+description = "Intelligent code conversion between programming languages using Claude Sonnet 4 and LangGraph"
+readme = "README.md"
+requires-python = ">=3.13"
+license = {text = "MIT"}
+authors = [
+    {name = "Ihor Posmashnyi", email = "iposmashnyi@gmail.com"}
+]
+keywords = ["code-conversion", "ai", "langgraph", "claude", "transpiler", "langchain"]
+
+dependencies = [
+    "dotenv>=0.9.9",
+    "langchain>=0.3.27",
+    "langchain-anthropic>=0.3.22",
+    "langgraph>=0.6.10",
+]
+
+[project.optional-dependencies]
+dev = []
+
+[project.scripts]
+ai-code-converter = "convert_project:main"
+
+[project.urls]
+Homepage = "https://github.com/iposmashnyi/ai-code-converter"
+Documentation = "https://github.com/iposmashnyi/ai-code-converter#readme"
+Repository = "https://github.com/iposmashnyi/ai-code-converter"
+"Bug Tracker" = "https://github.com/iposmashnyi/ai-code-converter/issues"
